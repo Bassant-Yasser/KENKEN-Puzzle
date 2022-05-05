@@ -90,3 +90,65 @@ def Generate_groups(size):
         groups_puzzle[-1] = (tuple(groups_puzzle[-1]), operator, int(target)) 
     return groups_puzzle                    # return the groups_puzzle
 
+def conflicting(A, a, B, b):
+    """ Return True iff A and B are conflicting.
+        Which make sure that no cell in A is equal 
+        to a cell in B if they are horizontal or vertical adjacent.
+
+    Args:
+        A (tuple of cells (j, i)):  The first set of cells.
+        a (tuple of values):  The first values.
+        B (tuple of cells (j, i)):  The second set of cells.
+        b (tuple of values):  The second values.
+
+    Returns:
+        bool: True iff A and B are conflicting.
+    """
+    for i in range(len(A)):         # for each cell in A
+        for j in range(len(B)):     # for each cell in B
+            mA = A[i]               # get the cell in A
+            mB = B[j]               # get the cell in B
+
+            ma = a[i]               # get the value for current cell in A
+            mb = b[j]               # get the value for current cell in B
+            # if the cells are horizontal or vertical adjacent and the values are equal
+            if ((mA[0] == mB[0]) != (mA[1] == mB[1])) and (ma == mb):   
+                return True         # return True iff A and B are conflicting
+    return False       # return False iff no conflicting cells are found
+
+def satisfies(values, operator, target):
+    """ Return True iff the values satisfy the operator and target.
+
+    Args:
+        values  (tuple of values):  The values to check.
+        operator  (str):  The operator to check.
+        target  (int):  The target to check.
+
+    Returns:
+        bool: True iff the values satisfy the operator and target.
+    """
+    for p in permutations(values):      # for each permutation of the values
+        # if the permutation satisfies the operator and target
+        if reduce(operators[operator], p) == target:    
+            return True        # return True iff the values satisfy the operator and target
+    return False        # return False iff no permutation satisfies the operator and target
+
+def Group_domains(size, groups_puzzle):
+    """ Return a dictionary of domains for each group in groups_puzzle.
+
+    Args:
+        size (int):  The size of the puzzle.
+        groups_puzzle (list of tuples (members, operator, target)):  The groups of the puzzle.
+
+    Returns:
+        domains (dict of tuples (j, i) : list of values):  The domains for each group.
+    """
+    domains = {}                              # dictionary of domains
+    for clique in groups_puzzle:              # for each group
+        members, operator, target = clique    # get the group's members, operator, and target
+        domains[members] = list(product(range(1, size + 1), repeat=len(members)))   # generate all possible values for the group
+        # generate a function to check if the values satisfy the group
+        qualifies = lambda values: not conflicting(members, values, members, values) and satisfies(values, operator, target)    
+        # filter the values that do not satisfy the group
+        domains[members] = list(filter(qualifies, domains[members]))    
+    return domains              # return the domains dictionary
