@@ -152,3 +152,25 @@ def Group_domains(size, groups_puzzle):
         # filter the values that do not satisfy the group
         domains[members] = list(filter(qualifies, domains[members]))    
     return domains              # return the domains dictionary
+    
+def Group_neighbors(groups_puzzle):
+    """ Return a dictionary of neighbors for each group in groups_puzzle.
+
+    Args:
+        groups_puzzle  (list of tuples (members, operator, target)):  The groups of the puzzle.
+
+    Returns:
+        neighbors (dict of tuples (j, i) : list of tuples (j, i)):  The neighbors for each group.
+    """
+    neighbors = {}                      # dictionary of neighbors
+    for members, _, _ in groups_puzzle: # for each group
+        neighbors[members] = []         # initialize the neighbors list
+    for A, _, _ in groups_puzzle:       # for each group A in groups_puzzle
+        for B, _, _ in groups_puzzle:   # for each group B that is not A in groups_puzzle
+            # if the groups are not the same and the group is not already in the neighbors list
+            if A != B and B not in neighbors[A]:    
+                # if the groups are conflicting
+                if conflicting(A, [-1] * len(A), B, [-1] * len(B)): 
+                    neighbors[A].append(B) # add the group to the neighbors list
+                    neighbors[B].append(A) # add the group to the neighbors list
+    return neighbors        # return the neighbors dictionary
