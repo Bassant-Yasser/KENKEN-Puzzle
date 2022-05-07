@@ -53,3 +53,39 @@ class Kenken():
 
 
 
+# ==========================================================
+# Backtracking Algorithm for solving the KenKen puzzle.
+# ==========================================================
+default_inference = lambda ken, var, value, assignment, removals: True  # default inference returns True
+
+def backtracking_search(ken,
+                assignment={},
+                inference=default_inference):
+    """Backtracking Algorithm for solving the KenKen puzzle.
+
+    Args:
+        ken (KenKen):  The KenKen instance.
+        assignment (dict of assignments var : val ):  The assignment.
+        inference (function):  The inference function.
+
+    Returns:
+        dict of assignments var : val ):  The assignment.
+    """
+    if len(assignment) == len(ken.variables):   # if the assignment is complete
+        return assignment                       # return the assignment
+    # select first unassigned variable
+    var =first(list(set(ken.variables)-assignment.keys())) # mrv(assignment,ken)
+    for value in ken.ken_choose_domain(var):    # for each value in the domain of var  #lcv(var,assignment, ken):#
+        if ken.ken_nummbers_of_conflicts(var, value, assignment) == 0:  # if there is no conflict
+            ken.ken_increase_assignment(var, value, assignment)         # increase the assignment
+            removals = ken.ken_assumption_of_removals(var, value)       # get the removals
+            if inference(ken, var, value, assignment, removals):        # if the inference is successful
+                result = backtracking_search(ken,assignment,inference)  # recursive call to the backtracking_search
+                if result is not None:                             # if the result is not None
+                    return result                                  # return the result
+            ken.ken_restore(removals)                              # restore the removals
+            ken.ken_unassignment(var, assignment)                  # unassign the variable
+    return None    # return None if the assignment is not complete
+
+
+
