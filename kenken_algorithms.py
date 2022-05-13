@@ -88,6 +88,32 @@ def backtracking_search(ken,
     return None    # return None if the assignment is not complete
 
 
+# ==================================
+# Backtracking with Forward Checking
+# ==================================
+def Backtracking_with_forward_checking(ken, var, value, assignment, removals):
+    """Backtracking with Forward Checking Algorithm.
+
+    Args:
+        ken (KenKen):  The KenKen instance.
+        var (tuple of cells (j, i)):  The variable.
+        value (tuple of values):  The value.
+        assignment (dict of assignments var : val ):  The assignment.
+        removals (list of tuples of cells (j, i) and values):  The removals.
+
+    Returns:
+        bool: True iff the chosen value for var doesn't violate the constraints.
+    """
+    ken.ken_support_current_domains()   # update current_domains
+    for B in ken.neighbors[var]:        # for each neighbor of var
+        if B not in assignment:         # if B is not in the assignment
+            for b in ken.current_domains[B][:]:  # for each value in the current_domains of B
+                if not ken.ken_constraints(var, value, B, b):   # if the constraints are not satisfied
+                    ken.ken_removals_modify(B, b, removals)     # remove B=b from the current_domains of B
+            if not ken.current_domains[B]:                      # if the current_domains of B is empty
+                return False            # return False
+    return True   # return True iff the chosen value for var doesn't violate the constraints.
+
 
 def mrv(assignment, csp):
     """Minimum-remaining-values heuristic."""
