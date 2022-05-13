@@ -86,31 +86,23 @@ def backtracking_search(ken,
             ken.ken_restore(removals)                              # restore the removals
             ken.ken_unassignment(var, assignment)                  # unassign the variable
     return None    # return None if the assignment is not complete
-    
-# ====================================================================
-# Gather assignments
-# ====================================================================
-def gather(name, size, groups_puzzle):
-    """Gather assignments.
-
-    Args:
-        name (str):  The name of algorithm to be used.
-        size (int):  The size of the puzzle.
-        groups_puzzle (list of lists of lists of int):  The puzzle.
-
-    Returns:
-        list of dict of assignments var : val ):  The assignments.
-    """
-
-    selected_algorithm = algorithms_Fn[name]    # get the algorithm  
-    ken = Kenken(size, groups_puzzle)           # create the KenKen instance
-    dt = time()                                 # get the current time
-    assignments = selected_algorithm(ken)       # get the assignments
-    dt = time() - dt                            # get the time difference
-    dt = float("{:.6f}".format(dt))             # format the time
-    data = (ken.checks, ken.num_assignments, dt)    # get the data
-    # print(assignments)
-    return assignments, data                    # return the assignments and the data
 
 
 
+def mrv(assignment, csp):
+    """Minimum-remaining-values heuristic."""
+    return argmin_random_tie(
+        [v for v in csp.variables if v not in assignment],
+        key=lambda var: num_legal_values(csp, var, assignment))
+
+def num_legal_values(csp, var, assignment):
+    if csp.current_domains:
+        return len(csp.current_domains[var])
+    else:
+        return count(csp.ken_nummbers_of_conflicts(var, val, assignment) == 0
+                     for val in csp.domains[var])
+
+def lcv(var, assignment, csp):
+    """Least-constraining-values heuristic."""
+    return sorted(csp.choices(var),
+                  key=lambda val: csp.ken_nummbers_of_conflicts(var, val, assignment))
