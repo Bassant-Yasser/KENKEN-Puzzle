@@ -52,6 +52,61 @@ class Kenken():
  
 
 
+# ==============================================================================
+# Inference Algorithms
+# ===============================================================================
+# ==================================
+# Maintain arc consistency.
+# ==================================
+
+def successful_removal(ken, Xi, Xj, removals):
+    """Return True iff the removal of Xi from Xj was successful.
+
+    Args:
+        ken (KenKen):  The KenKen instance.
+        Xi (tuple of cells (j, i)):  The first variable.
+        Xj (tuple of cells (j, i)):  The second variable.
+        removals (list of tuples of cells (j, i) and values):  The removals.
+
+    Returns:
+        bool: True iff the removal of Xi from Xj was successful.
+    """
+    suc_removal = False                         # successful removal
+    for x in ken.current_domains[Xi][:]:        # for each value in the current_domains of Xi
+        # if all the constraints are satisfied
+        if all(not ken.ken_constraints(Xi, x, Xj, y) for y in ken.current_domains[Xj]):     
+            ken.ken_removals_modify(Xi, x, removals)        # remove Xi=x from the current_domains of Xi
+            suc_removal = True               # successful removal
+    return suc_removal                       # return the successful removal
+
+def Maintain_arc_consistency(ken, var, value, assignment, removals):
+    """Maintain arc consistency Algorithm.
+
+    Args:
+        ken (KenKen):  The KenKen instance.
+        var (tuple of cells (j, i)):  The variable.
+        value (tuple of values):  The value.
+        assignment  (dict of assignments var : val ):  The assignment.
+        removals (list of tuples of cells (j, i) and values):  The removals.
+
+    Returns:
+        bool: True iff the Algorithm was successful to maintain arc consistency.
+    """
+    Arc = []                 # arcs queue
+    for X in ken.neighbors[var]:    # for each neighbor of var
+        Arc.append((X, var))        # add the arc to the queue
+    ken.ken_support_current_domains()   # update current_domains
+    while Arc:           # while the queue is not empty
+        (Xi, Xj) = Arc.pop()    # remove the arc from the queue
+        if successful_removal(ken, Xi, Xj, removals):   # if the removal was successful
+            if not ken.current_domains[Xi]:             # if the current_domains of Xi is empty
+                return False           # return False
+            for Xk in ken.neighbors[Xi]:                # for each neighbor of Xi
+                if Xk != Xj:                            # if Xk is not Xj
+                    Arc.append((Xk, Xi))                # add the arc to the queue
+    return True     # return True iff the Algorithm was successful to maintain arc consistency
+
+
 
 # ==========================================================
 # Backtracking Algorithm for solving the KenKen puzzle.
