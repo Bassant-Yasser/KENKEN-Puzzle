@@ -4,7 +4,7 @@ from kenken_algorithms import gather
 from kenken_helper import Generate_groups
 from table import TableModel
 
-
+from random import randint
 class Ui_MainWindow(object):
     alg_choice = ""
     size_choice = 0
@@ -37,6 +37,12 @@ class Ui_MainWindow(object):
         self.solve = QtWidgets.QPushButton(self.centralwidget)
         self.solve.setGeometry(QtCore.QRect(190, 170, 106, 30))
         self.solve.setObjectName("solve")
+        
+        self.smode = QtWidgets.QPushButton('multi test',self.centralwidget)
+        self.smode.setCheckable(True)
+        self.smode.setGeometry(QtCore.QRect(270, 40, 106, 30))
+        self.smode.clicked[bool].connect(self.switchmode)
+        
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setGeometry(QtCore.QRect(20, 40, 80, 21))
         self.label.setObjectName("label")
@@ -80,6 +86,41 @@ class Ui_MainWindow(object):
         self.retranslateUi(self.MainWindow)
         QtCore.QMetaObject.connectSlotsByName(self.MainWindow)
         
+    def switchmode(self):
+        if self.smode.isChecked():
+            # file_name = QFileDialog.getSaveFileName(self.MainWindow, 'Save File', '', 'CSV(*.csv)')
+            with open("test.csv", 'w') as f:
+                # for row in self.tableView.model()._data:
+                #     f.write(','.join(str(col) for col in row) + '\n')
+                data = ["Algorithm", "Size","Checks", "Assignments", "Time"]
+                f.write(','.join(str(col) for col in data) + '\n')
+                BT_t = 0
+                FC_t = 0
+                MAC_t = 0
+                for i in range(0,35):
+                    size = randint(3,6)
+                    Gboard = Generate_groups(size)
+                    t = Gboard
+                    a, data = gather("BT", size, t)
+                    print(a)
+                    data = ["BT", size, data[0], data[1], data[2]]
+                    f.write(','.join(str(col) for col in data) + '\n')
+                    BT_t += data[4]
+                    t = Gboard
+                    _, data = gather("BT+FC", size, t)
+                    data = ["BT+FC", size, data[0], data[1], data[2]]
+                    f.write(','.join(str(col) for col in data) + '\n')
+                    FC_t += data[4]
+                    t = Gboard
+                    _, data = gather("BT+MAC", size, t)
+                    data = ["BT+MAC", size, data[0], data[1], data[2]]
+                    f.write(','.join(str(col) for col in data) + '\n')
+                    MAC_t += data[4]
+                print("BT:", BT_t)
+                print("FC:", FC_t)
+                print("MAC:", MAC_t)
+                self.smode.setChecked(False)
+                  
     def save_csv(self):
         file_name = QFileDialog.getSaveFileName(self.MainWindow, 'Save File', '', 'CSV(*.csv)')
         with open(file_name[0], 'w') as f:

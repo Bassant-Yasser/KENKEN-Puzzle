@@ -3,11 +3,11 @@ from kenken_helper  import *
 from utils          import *
 
 
-algorithms_Fn = {
-    "BT":           lambda ken: backtracking_search(ken),
-    "BT+FC":        lambda ken: backtracking_search(ken, inference=Backtracking_with_forward_checking),
-    "BT+MAC":       lambda ken: backtracking_search(ken, inference=Maintain_arc_consistency)
-}   # algorithms_Fn dict for algorithms names and functions
+# algorithms_Fn = {
+#     "BT":           lambda ken: backtracking_search(ken, assignment={}),
+#     "BT+FC":        lambda ken: backtracking_search(ken, assignment={}, inference=Backtracking_with_forward_checking),
+#     "BT+MAC":       lambda ken: backtracking_search(ken, assignment={}, inference=Maintain_arc_consistency)
+# }   # algorithms_Fn dict for algorithms names and functions
 
 class Kenken(): 
     """Class for Kenken puzzle."""
@@ -150,139 +150,148 @@ class Kenken():
             # add the value to the current_domains
             self.current_domains[B].append(b)   
 
+class solver:
+    def __init__(self, size, Groups):
+        self.ken = Kenken(size, Groups)
+    # ==============================================================================
+    # Inference Algorithms
+    # ===============================================================================
+    # ==================================
+    # Maintain arc consistency.
+    # ==================================
 
+    def successful_removal(self, Xi, Xj, removals):
+        """Return True iff the removal of Xi from Xj was successful.
 
-# ==============================================================================
-# Inference Algorithms
-# ===============================================================================
-# ==================================
-# Maintain arc consistency.
-# ==================================
+        Args:
+            ken (KenKen):  The KenKen instance.
+            Xi (tuple of cells (j, i)):  The first variable.
+            Xj (tuple of cells (j, i)):  The second variable.
+            removals (list of tuples of cells (j, i) and values):  The removals.
 
-def successful_removal(ken, Xi, Xj, removals):
-    """Return True iff the removal of Xi from Xj was successful.
+        Returns:
+            bool: True iff the removal of Xi from Xj was successful.
+        """
+        suc_removal = False                         # successful removal
+        for x in self.ken.current_domains[Xi][:]:        # for each value in the current_domains of Xi
+            # if all the constraints are satisfied
+            if all(not self.ken.ken_constraints(Xi, x, Xj, y) for y in self.ken.current_domains[Xj]):     
+                self.ken.ken_removals_modify(Xi, x, removals)        # remove Xi=x from the current_domains of Xi
+                suc_removal = True               # successful removal
+        return suc_removal                       # return the successful removal
 
-    Args:
-        ken (KenKen):  The KenKen instance.
-        Xi (tuple of cells (j, i)):  The first variable.
-        Xj (tuple of cells (j, i)):  The second variable.
-        removals (list of tuples of cells (j, i) and values):  The removals.
+    def Maintain_arc_consistency(self, var, value, assignment, removals):
+        """Maintain arc consistency Algorithm.
 
-    Returns:
-        bool: True iff the removal of Xi from Xj was successful.
-    """
-    suc_removal = False                         # successful removal
-    for x in ken.current_domains[Xi][:]:        # for each value in the current_domains of Xi
-        # if all the constraints are satisfied
-        if all(not ken.ken_constraints(Xi, x, Xj, y) for y in ken.current_domains[Xj]):     
-            ken.ken_removals_modify(Xi, x, removals)        # remove Xi=x from the current_domains of Xi
-            suc_removal = True               # successful removal
-    return suc_removal                       # return the successful removal
+        Args:
+            ken (KenKen):  The KenKen instance.
+            var (tuple of cells (j, i)):  The variable.
+            value (tuple of values):  The value.
+            assignment  (dict of assignments var : val ):  The assignment.
+            removals (list of tuples of cells (j, i) and values):  The removals.
 
-def Maintain_arc_consistency(ken, var, value, assignment, removals):
-    """Maintain arc consistency Algorithm.
+        Returns:
+            bool: True iff the Algorithm was successful to maintain arc consistency.
+        """
+        Arc = []                 # arcs queue
+        for X in self.ken.neighbors[var]:    # for each neighbor of var
+            Arc.append((X, var))        # add the arc to the queue
+        self.ken.ken_support_current_domains()   # update current_domains
+        while Arc:           # while the queue is not empty
+            (Xi, Xj) = Arc.pop()    # remove the arc from the queue
+            if self.successful_removal( Xi, Xj, removals):   # if the removal was successful
+                if not self.ken.current_domains[Xi]:             # if the current_domains of Xi is empty
+                    return False           # return False
+                for Xk in self.ken.neighbors[Xi]:                # for each neighbor of Xi
+                    if Xk != Xj:                            # if Xk is not Xj
+                        Arc.append((Xk, Xi))                # add the arc to the queue
+        return True     # return True iff the Algorithm was successful to maintain arc consistency
+        
 
-    Args:
-        ken (KenKen):  The KenKen instance.
-        var (tuple of cells (j, i)):  The variable.
-        value (tuple of values):  The value.
-        assignment  (dict of assignments var : val ):  The assignment.
-        removals (list of tuples of cells (j, i) and values):  The removals.
+    # ==================================
+    # Backtracking with Forward Checking
+    # ==================================
+    def Backtracking_with_forward_checking(self, var, value, assignment, removals):
+        """Backtracking with Forward Checking Algorithm.
 
-    Returns:
-        bool: True iff the Algorithm was successful to maintain arc consistency.
-    """
-    Arc = []                 # arcs queue
-    for X in ken.neighbors[var]:    # for each neighbor of var
-        Arc.append((X, var))        # add the arc to the queue
-    ken.ken_support_current_domains()   # update current_domains
-    while Arc:           # while the queue is not empty
-        (Xi, Xj) = Arc.pop()    # remove the arc from the queue
-        if successful_removal(ken, Xi, Xj, removals):   # if the removal was successful
-            if not ken.current_domains[Xi]:             # if the current_domains of Xi is empty
-                return False           # return False
-            for Xk in ken.neighbors[Xi]:                # for each neighbor of Xi
-                if Xk != Xj:                            # if Xk is not Xj
-                    Arc.append((Xk, Xi))                # add the arc to the queue
-    return True     # return True iff the Algorithm was successful to maintain arc consistency
-    
+        Args:
+            ken (KenKen):  The KenKen instance.
+            var (tuple of cells (j, i)):  The variable.
+            value (tuple of values):  The value.
+            assignment (dict of assignments var : val ):  The assignment.
+            removals (list of tuples of cells (j, i) and values):  The removals.
 
-# ==================================
-# Backtracking with Forward Checking
-# ==================================
-def Backtracking_with_forward_checking(ken, var, value, assignment, removals):
-    """Backtracking with Forward Checking Algorithm.
+        Returns:
+            bool: True iff the chosen value for var doesn't violate the constraints.
+        """
+        self.ken.ken_support_current_domains()   # update current_domains
+        for B in self.ken.neighbors[var]:        # for each neighbor of var
+            if B not in assignment:         # if B is not in the assignment
+                for b in self.ken.current_domains[B][:]:  # for each value in the current_domains of B
+                    if not self.ken.ken_constraints(var, value, B, b):   # if the constraints are not satisfied
+                        self.ken.ken_removals_modify(B, b, removals)     # remove B=b from the current_domains of B
+                if not self.ken.current_domains[B]:                      # if the current_domains of B is empty
+                    return False            # return False
+        return True   # return True iff the chosen value for var doesn't violate the constraints.
 
-    Args:
-        ken (KenKen):  The KenKen instance.
-        var (tuple of cells (j, i)):  The variable.
-        value (tuple of values):  The value.
-        assignment (dict of assignments var : val ):  The assignment.
-        removals (list of tuples of cells (j, i) and values):  The removals.
+    def mrv(self,assignment):
+        """Minimum-remaining-values heuristic."""
+        return argmin_random_tie(
+            [v for v in self.ken.variables if v not in assignment],
+            key=lambda var: self.num_legal_values(var, assignment))
 
-    Returns:
-        bool: True iff the chosen value for var doesn't violate the constraints.
-    """
-    ken.ken_support_current_domains()   # update current_domains
-    for B in ken.neighbors[var]:        # for each neighbor of var
-        if B not in assignment:         # if B is not in the assignment
-            for b in ken.current_domains[B][:]:  # for each value in the current_domains of B
-                if not ken.ken_constraints(var, value, B, b):   # if the constraints are not satisfied
-                    ken.ken_removals_modify(B, b, removals)     # remove B=b from the current_domains of B
-            if not ken.current_domains[B]:                      # if the current_domains of B is empty
-                return False            # return False
-    return True   # return True iff the chosen value for var doesn't violate the constraints.
+    def num_legal_values(self, var, assignment):
+        if self.ken.current_domains:
+            return len(self.ken.current_domains[var])
+        else:
+            return count(self.ken.ken_nummbers_of_conflicts(var, val, assignment) == 0
+                        for val in self.ken.domains[var])
 
-def mrv(assignment, csp):
-    """Minimum-remaining-values heuristic."""
-    return argmin_random_tie(
-        [v for v in csp.variables if v not in assignment],
-        key=lambda var: num_legal_values(csp, var, assignment))
+    def lcv(self, var, assignment):
+        """Least-constraining-values heuristic."""
+        return sorted(self.ken.choices(var),
+                    key=lambda val: self.ken.ken_nummbers_of_conflicts(var, val, assignment))
+    # ==========================================================
+    # Backtracking Algorithm for solving the KenKen puzzle.
+    # ==========================================================
+    default_inference = lambda self, var, value, assignment, removals: True  # default inference returns True
 
-def num_legal_values(csp, var, assignment):
-    if csp.current_domains:
-        return len(csp.current_domains[var])
-    else:
-        return count(csp.ken_nummbers_of_conflicts(var, val, assignment) == 0
-                     for val in csp.domains[var])
+    def backtracking_search(self,
+                    assignment={},
+                    inference=default_inference):
+        """Backtracking Algorithm for solving the KenKen puzzle.
 
-def lcv(var, assignment, csp):
-    """Least-constraining-values heuristic."""
-    return sorted(csp.choices(var),
-                  key=lambda val: csp.ken_nummbers_of_conflicts(var, val, assignment))
-# ==========================================================
-# Backtracking Algorithm for solving the KenKen puzzle.
-# ==========================================================
-default_inference = lambda ken, var, value, assignment, removals: True  # default inference returns True
+        Args:
+            ken (KenKen):  The KenKen instance.
+            assignment (dict of assignments var : val ):  The assignment.
+            inference (function):  The inference function.
 
-def backtracking_search(ken,
-                assignment={},
-                inference=default_inference):
-    """Backtracking Algorithm for solving the KenKen puzzle.
-
-    Args:
-        ken (KenKen):  The KenKen instance.
-        assignment (dict of assignments var : val ):  The assignment.
-        inference (function):  The inference function.
-
-    Returns:
-        dict of assignments var : val ):  The assignment.
-    """
-    if len(assignment) == len(ken.variables):   # if the assignment is complete
-        return assignment                       # return the assignment
-    # select first unassigned variable
-    var =first(list(set(ken.variables)-assignment.keys())) # mrv(assignment,ken)
-    for value in ken.ken_choose_domain(var):    # for each value in the domain of var  #lcv(var,assignment, ken):#
-        if ken.ken_nummbers_of_conflicts(var, value, assignment) == 0:  # if there is no conflict
-            ken.ken_increase_assignment(var, value, assignment)         # increase the assignment
-            removals = ken.ken_assumption_of_removals(var, value)       # get the removals
-            if inference(ken, var, value, assignment, removals):        # if the inference is successful
-                result = backtracking_search(ken,assignment,inference)  # recursive call to the backtracking_search
-                if result is not None:                             # if the result is not None
-                    return result                                  # return the result
-            ken.ken_restore(removals)                              # restore the removals
-            ken.ken_unassignment(var, assignment)                  # unassign the variable
-    return None    # return None if the assignment is not complete
+        Returns:
+            dict of assignments var : val ):  The assignment.
+        """
+        if len(assignment) == len(self.ken.variables):   # if the assignment is complete
+            return assignment                       # return the assignment
+        # select first unassigned variable
+        var =first(list(set(self.ken.variables)-assignment.keys())) # mrv(assignment,ken)
+        for value in self.ken.ken_choose_domain(var):    # for each value in the domain of var  #lcv(var,assignment, ken):#
+            if self.ken.ken_nummbers_of_conflicts(var, value, assignment) == 0:  # if there is no conflict
+                self.ken.ken_increase_assignment(var, value, assignment)         # increase the assignment
+                removals = self.ken.ken_assumption_of_removals(var, value)       # get the removals
+                if inference( var, value, assignment, removals):        # if the inference is successful
+                    result = self.backtracking_search(assignment,inference)  # recursive call to the backtracking_search
+                    if result is not None:                             # if the result is not None
+                        return result                                  # return the result
+                self.ken.ken_restore(removals)                              # restore the removals
+                self.ken.ken_unassignment(var, assignment)                  # unassign the variable
+        return None    # return None if the assignment is not complete
+    def solve(self, Algorithm_name):
+        if Algorithm_name == "BT":
+            return self.backtracking_search(assignment={}, inference=self.default_inference)
+        elif Algorithm_name == "BT+FC":
+            return self.backtracking_search(assignment={}, inference=self.Backtracking_with_forward_checking)
+        elif Algorithm_name == "BT+MAC":
+            return self.backtracking_search(assignment={}, inference=self.Maintain_arc_consistency)
+        return None
 
 
 # ====================================================================
@@ -300,12 +309,15 @@ def gather(name, size, groups_puzzle):
         list of dict of assignments var : val ):  The assignments.
     """
 
-    selected_algorithm = algorithms_Fn[name]    # get the algorithm  
-    ken = Kenken(size, groups_puzzle)           # create the KenKen instance
+    # selected_algorithm = algorithms_Fn[name]    # get the algorithm  
+    # ken = Kenken(size, groups_puzzle)           # create the KenKen instance
+    ahmed = solver(size,groups_puzzle)
+
     dt = time()                                 # get the current time
-    assignments = selected_algorithm(ken)       # get the assignments
+    # assignments = selected_algorithm(ken)       # get the assignments
+    assignments = ahmed.solve(name)
     dt = time() - dt                            # get the time difference
     dt = float("{:.6f}".format(dt))             # format the time
-    data = (ken.checks, ken.num_assignments, dt)    # get the data
+    data = (ahmed.ken.checks, ahmed.ken.num_assignments, dt)    # get the data
     # print(assignments)
     return assignments, data                    # return the assignments and the data
