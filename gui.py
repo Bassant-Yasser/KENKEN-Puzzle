@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from kenken_algorithms import gather
-from kenken_helper import Generate_groups
+from kenken_helper import  Kenken_Board
 from table import TableModel
 
 from random import randint
@@ -15,6 +15,7 @@ class Ui_MainWindow(object):
     groups = []
     w_list = []
     row = []
+    Kgenerator = Kenken_Board(0)
 
     def setupUi(self, MainWindow):
         self.MainWindow = MainWindow
@@ -23,25 +24,34 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(self.MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.size_box = QtWidgets.QSpinBox(self.centralwidget)
-        self.size_box.setGeometry(QtCore.QRect(140, 40, 52, 30))
+        self.size_box.setGeometry(QtCore.QRect(110, 40, 52, 30))
         self.size_box.setMinimum(3)
         self.size_box.setMaximum(9)
         self.size_box.setObjectName("size_box")
         self.alg = QtWidgets.QComboBox(self.centralwidget)
-        self.alg.setGeometry(QtCore.QRect(140, 90, 100, 29))
+        self.alg.setGeometry(QtCore.QRect(110, 90, 100, 29))
         self.alg.setObjectName("alg")
+        
         self.gen = QtWidgets.QPushButton(self.centralwidget)
-        self.gen.setGeometry(QtCore.QRect(70, 170, 106, 30))
+        self.gen.setGeometry(QtCore.QRect(70, 130, 106, 30))
         self.gen.setObjectName("gen")
-
         self.solve = QtWidgets.QPushButton(self.centralwidget)
-        self.solve.setGeometry(QtCore.QRect(190, 170, 106, 30))
+        self.solve.setGeometry(QtCore.QRect(190, 130, 106, 30))
         self.solve.setObjectName("solve")
+        self.pushButton = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton.setGeometry(QtCore.QRect(310, 130, 106, 30))
+        self.pushButton.setObjectName("clear")
+
+
         
         self.smode = QtWidgets.QPushButton('multi test',self.centralwidget)
         self.smode.setCheckable(True)
-        self.smode.setGeometry(QtCore.QRect(270, 40, 106, 30))
+        self.smode.setGeometry(QtCore.QRect(70, 180, 106, 30))
         self.smode.clicked[bool].connect(self.switchmode)
+        self.label_performance = QtWidgets.QLabel(self.centralwidget)
+        self.label_performance.setGeometry(QtCore.QRect(200, 155, 120, 100))
+        self.label_performance.setObjectName("label_performance")
+        self.label_performance.setText("")
         
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setGeometry(QtCore.QRect(20, 40, 80, 21))
@@ -58,9 +68,7 @@ class Ui_MainWindow(object):
         self.tableView = QtWidgets.QTableView(self.centralwidget)
         self.tableView.setGeometry(QtCore.QRect(5, 271, 520, 380))
         self.tableView.setObjectName("tableView")
-        self.pushButton = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton.setGeometry(QtCore.QRect(310, 170, 106, 30))
-        self.pushButton.setObjectName("pushButton")
+
         self.MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(self.MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1397, 26))
@@ -99,10 +107,10 @@ class Ui_MainWindow(object):
                 MAC_t = 0
                 for i in range(0,35):
                     size = randint(3,6)
-                    Gboard = Generate_groups(size)
+                    self.Kgenerator.change_size(size)
+                    Gboard = self.Kgenerator.Generate_groups()
                     t = Gboard
                     a, data = gather("BT", size, t)
-                    print(a)
                     data = ["BT", size, data[0], data[1], data[2]]
                     f.write(','.join(str(col) for col in data) + '\n')
                     BT_t += data[4]
@@ -116,9 +124,8 @@ class Ui_MainWindow(object):
                     data = ["BT+MAC", size, data[0], data[1], data[2]]
                     f.write(','.join(str(col) for col in data) + '\n')
                     MAC_t += data[4]
-                print("BT:", BT_t)
-                print("FC:", FC_t)
-                print("MAC:", MAC_t)
+                perf="BT: "+ str(BT_t)+"\n FC: "+str(FC_t)+"\n MAC: "+str(MAC_t)
+                self.label_performance.setText(perf)
                 self.smode.setChecked(False)
                   
     def save_csv(self):
@@ -221,7 +228,6 @@ class Ui_MainWindow(object):
             return
         d = [self.alg_choice, self.size_choice]
         d = d + list(data)
-        # print(data)
         self.data.append(list(d))
         model = TableModel(self.data)
         self.tableView.setModel(model)
@@ -229,8 +235,7 @@ class Ui_MainWindow(object):
 
     def solve_clicked(self):
         self.assignment, self.row = gather(self.alg_choice, self.size_choice, self.groups)
-        # print(self.assignment)
-        # print(self.groups)
+
         self.add_grid_solve(self.assignment, self.groups)
         self.gen_table(self.row, False)
         self.solve.setDisabled(True)
@@ -238,7 +243,6 @@ class Ui_MainWindow(object):
         self.actionsave_result_as_txt.setDisabled(False)
     
     def gen_clicked(self):
-        # print(self.size_choice)
         self.size_choice = self.size_box.value()
         self.gridLayoutWidget.resize(self.size_choice*80, self.size_choice*80)
         self.alg_choice = self.alg.currentText()
@@ -246,13 +250,10 @@ class Ui_MainWindow(object):
         for i in reversed(range(self.gridLayout.count())): 
             self.gridLayout.itemAt(i).widget().deleteLater()
         self.w_list = []
-        # self.output_file = "kenken.csv"
-        self.groups = Generate_groups(self.size_choice)
-        # self.assignment, self.row, self.groups = gather(self.output_file, self.alg_choice, self.size_choice)
-        # print(self.groups)
+        self.Kgenerator.change_size(self.size_choice)
+        self.groups = self.Kgenerator.Generate_groups()
         self.gen_flag = True
         self.add_grid_gen(self.groups)
-        # self.gen_table(data)
         self.solve.setDisabled(False)
 
     def onChanged(self, text):
@@ -264,6 +265,7 @@ class Ui_MainWindow(object):
         self.size_choice = value
 
     def clear_b(self):
+        self.label_performance.setText("")
         self.actionsave_result_as_csv.setDisabled(True)
         self.actionsave_result_as_txt.setDisabled(True)
         for i in reversed(range(self.gridLayout.count())): 

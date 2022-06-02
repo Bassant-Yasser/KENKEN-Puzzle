@@ -42,8 +42,7 @@ class Kenken():
         self.checks += 1        # increment the number of checks
         # return True iff A and B are conflicting
         return A == B or not conflicting(A, a, B, b)    
-
-      
+ 
     def ken_increase_assignment(self, var, val, assignment):
         """Increment the number of assignments.
         Args:
@@ -105,7 +104,6 @@ class Kenken():
                 removals.append((var, it))      # add the value to the list of removals
         self.current_domains[var] = [value]     # update the current_domains
         return removals            # return the list of removals
-
 
     def ken_removals_modify(self, var, value, removals):
         """Remove var=value from the current domains of the variables.
@@ -207,7 +205,6 @@ class solver:
                         Arc.append((Xk, Xi))                # add the arc to the queue
         return True     # return True iff the Algorithm was successful to maintain arc consistency
         
-
     # ==================================
     # Backtracking with Forward Checking
     # ==================================
@@ -284,6 +281,7 @@ class solver:
                 self.ken.ken_restore(removals)                              # restore the removals
                 self.ken.ken_unassignment(var, assignment)                  # unassign the variable
         return None    # return None if the assignment is not complete
+    
     def solve(self, Algorithm_name):
         if Algorithm_name == "BT":
             return self.backtracking_search(assignment={}, inference=self.default_inference)
@@ -319,5 +317,4 @@ def gather(name, size, groups_puzzle):
     dt = time() - dt                            # get the time difference
     dt = float("{:.6f}".format(dt))             # format the time
     data = (ahmed.ken.checks, ahmed.ken.num_assignments, dt)    # get the data
-    # print(assignments)
     return assignments, data                    # return the assignments and the data
